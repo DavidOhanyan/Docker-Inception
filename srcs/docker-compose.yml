@@ -1,0 +1,132 @@
+version: "3"
+
+services:
+  nginx:
+    container_name: nginx
+    depends_on:
+      - wordpress
+    build: ./requirements/nginx/
+    volumes:
+      - wp_volume:/var/www/html/
+    restart: always
+    networks:
+      - bridge-network
+    env_file:
+      - .env
+    ports:
+      - "443:443"
+
+  mariadb:
+    container_name: mariadb
+    build: ./requirements/mariadb/
+    volumes:
+      - db_volume:/var/lib/mysql/
+    networks:
+      - bridge-network
+    env_file:
+      - .env
+    restart: always
+
+  wordpress:
+    container_name: wordpress
+    depends_on:
+      - mariadb
+    build: ./requirements/wordpress/
+    volumes:
+      - wp_volume:/var/www/html/
+    restart: always
+    networks:
+      - bridge-network
+    env_file:
+      - .env
+    
+  redis:
+    container_name: redis
+    depends_on:
+     - wordpress
+    build: ./requirements/bonus/redis/
+    restart: always
+    networks:
+      - bridge-network
+    env_file:
+      - .env
+  
+  ftp:
+    container_name: ftp
+    depends_on:
+     - wordpress
+    build: ./requirements/bonus/ftp/
+    volumes:
+      - wp_volume:/var/www/html/
+    restart: always
+    networks:
+     - bridge-network
+    env_file:
+     - .env
+    ports:
+     - "21:21"
+     - "21100-21110:21100-21110"
+  
+  adminer:
+    container_name: adminer
+    depends_on:
+     - wordpress
+     - mariadb
+    build: ./requirements/bonus/adminer/
+    networks:
+     - bridge-network
+    env_file:
+     - .env
+    ports:
+     - "8080:8080"
+    restart: always
+  
+  portainer:
+    container_name: portainer
+    volumes:
+     - "/var/run/docker.sock:/var/run/docker.sock"
+     - "pt_volume:/data"
+    build: ./requirements/bonus/portainer/
+    networks:
+     - bridge-network
+    env_file:
+     - .env
+    ports:
+     - "9443:9443"
+    restart: always
+
+  website:
+    container_name: website
+    build: ./requirements/bonus/website/
+    networks:
+     - bridge-network
+    ports:
+     - "3000:3000"
+    restart: always
+    env_file:
+     - .env
+
+
+volumes:
+  wp_volume:
+    driver: local
+    driver_opts:
+      device: /home/dohanyan/data/wordpress
+      o: bind
+      type: none
+  db_volume:
+    driver: local
+    driver_opts:
+      device: /home/dohanyan/data/mariadb
+      o: bind
+      type: none
+  pt_volume:
+    driver: local
+    driver_opts:
+      device: /home/dohanyan/data/portainer
+      o: bind
+      type: none
+
+networks:
+  bridge-network:
+    driver: bridge
