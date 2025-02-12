@@ -25,12 +25,18 @@ services:
       - bridge-network
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: always
 
   wordpress:
     container_name: wordpress
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
     build: ./requirements/wordpress/
     volumes:
       - wp_volume:/var/www/html/
@@ -39,6 +45,11 @@ services:
       - bridge-network
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD", "wp", "db", "check", "--allow-root"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     
   redis:
     container_name: redis
